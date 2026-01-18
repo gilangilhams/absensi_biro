@@ -10,3 +10,5 @@ build/
 *.sqlite3
 __pycache__/
 venv/
+
+absensi_biro.db
