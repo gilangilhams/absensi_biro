@@ -1,5 +1,3 @@
-venv/
-
 # Contoh isi .gitignore
 node_modules/
 .env
@@ -7,3 +5,8 @@ dist/
 build/
 *.log
 .vscode/
+
+*.db
+*.sqlite3
+__pycache__/
+venv/
