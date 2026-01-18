@@ -96,8 +96,12 @@ else:
         bln = col1.selectbox("Pilih Bulan", bln_list.keys())
         thn = col2.selectbox("Pilih Tahun", ["2026", "2027", "2028"])
         
+        # Safe query untuk kelas dengan error handling
         df_kelas = jalankan_query("SELECT DISTINCT KELAS FROM SISWA")
-        filter_kelas = col3.selectbox("Filter Kelas", ["Semua"] + list(df_kelas['KELAS']))
+        kelas_list = ["Semua"]
+        if not df_kelas.empty and 'KELAS' in df_kelas.columns:
+            kelas_list += list(df_kelas['KELAS'])
+        filter_kelas = col3.selectbox("Filter Kelas", kelas_list)
 
         where_clause = f"WHERE strftime('%m', A.TANGGAL)='{bln_list[bln]}' AND strftime('%Y', A.TANGGAL)='{thn}'"
         if filter_kelas != "Semua":
