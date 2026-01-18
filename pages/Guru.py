@@ -4,33 +4,45 @@ import pandas as pd
 from datetime import datetime
 import os
 import sys
+from pathlib import Path
 
 # Add parent directory to path for imports
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from init_db import init_database
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
-# Initialize database on startup
-init_database()
+# Try to import Supabase DB, fallback to SQLite
+try:
+    from supabase_db import db
+    USE_SUPABASE = True
+except Exception as e:
+    print(f"⚠️ Supabase not available: {e}, falling back to SQLite")
+    USE_SUPABASE = False
 
-# Mencari path folder tempat script ini berjalan
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-
-# Jika file ini ada di dalam folder 'pages', kita harus naik satu tingkat
-if "pages" in BASE_DIR:
-    DB_PATH = os.path.join(os.path.dirname(BASE_DIR), 'absensi_biro.db')
+if not USE_SUPABASE:
+    from init_db import init_database
+    init_database()
+    
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+    if "pages" in BASE_DIR:
+        DB_PATH = os.path.join(os.path.dirname(BASE_DIR), 'absensi_biro.db')
+    else:
+        DB_PATH = os.path.join(BASE_DIR, 'absensi_biro.db')
+    
+    def jalankan_query(sql, params=()):
+        with sqlite3.connect(DB_PATH) as conn:
+            return pd.read_sql_query(sql, conn, params=params)
+    
+    def eksekusi_sql(sql, params=()):
+        with sqlite3.connect(DB_PATH) as conn:
+            cursor = conn.cursor()
+            cursor.execute(sql, params)
+            conn.commit()
 else:
-    DB_PATH = os.path.join(BASE_DIR, 'absensi_biro.db')
-
-def jalankan_query(sql, params=()):
-    with sqlite3.connect(DB_PATH) as conn:
-        return pd.read_sql_query(sql, conn, params=params)
-
-# --- FUNGSI DATABASE ---
-def eksekusi_sql(sql, params=()):
-    with sqlite3.connect(DB_PATH) as conn:
-        cursor = conn.cursor()
-        cursor.execute(sql, params)
-        conn.commit()
+    def jalankan_query(sql, params=()):
+        result = db.execute_query(sql, params)
+        return pd.DataFrame(result) if result else pd.DataFrame()
+    
+    def eksekusi_sql(sql, params=()):
+        db.execute_update(sql, params)
 
 # --- TAMPILAN ---
 st.set_page_config(page_title="Portal Guru", layout="centered")
