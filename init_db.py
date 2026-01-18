@@ -81,12 +81,17 @@ def init_database():
         )
         """)
         
-        # Check if default admin exists, if not create it
+        # Check if default admin exists, if not create it with environment variables
         cursor.execute("SELECT * FROM ADMIN WHERE USERNAME = ?", ('admin',))
         if cursor.fetchone() is None:
+            # Read from environment variables with fallback values
+            admin_user = os.getenv('ADMIN_USERNAME', 'admin')
+            admin_pass = os.getenv('ADMIN_PASSWORD', 'admin123')
+            admin_name = os.getenv('ADMIN_NAME', 'Administrator')
+            
             cursor.execute(
                 "INSERT INTO ADMIN (USERNAME, PASSWORD, NAMA_ADMIN) VALUES (?, ?, ?)",
-                ('admin', 'admin123', 'Administrator')
+                (admin_user, admin_pass, admin_name)
             )
         
         conn.commit()
