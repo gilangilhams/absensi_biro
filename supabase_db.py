@@ -3,6 +3,7 @@ import psycopg2
 import psycopg2.extras
 import streamlit as st
 from contextlib import contextmanager
+from sql_converter import convert_sql_for_postgres
 
 class SupabaseDB:
     def __init__(self):
@@ -26,6 +27,9 @@ class SupabaseDB:
     
     def execute_query(self, query, params=None):
         """Execute query that returns results"""
+        # Convert SQLite syntax to PostgreSQL if needed
+        query, params = convert_sql_for_postgres(query, params)
+        
         with self.get_connection() as conn:
             cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
             cursor.execute(query, params)
@@ -33,6 +37,9 @@ class SupabaseDB:
     
     def execute_update(self, query, params=None):
         """Execute query that modifies data"""
+        # Convert SQLite syntax to PostgreSQL if needed
+        query, params = convert_sql_for_postgres(query, params)
+        
         with self.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(query, params)
