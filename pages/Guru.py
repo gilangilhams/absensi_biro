@@ -1,8 +1,13 @@
+import os
+from dotenv import load_dotenv
+
+# Load environment variables FIRST
+load_dotenv()
+
 import streamlit as st
 import sqlite3
 import pandas as pd
 from datetime import datetime
-import os
 import sys
 from pathlib import Path
 

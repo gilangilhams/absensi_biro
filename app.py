@@ -1,12 +1,14 @@
-import streamlit as st
 import os
+from dotenv import load_dotenv
+
+# Load environment variables FIRST before any imports
+load_dotenv()
+
+import streamlit as st
 import sqlite3
 import pandas as pd
 import sys
 from pathlib import Path
-
-# Add parent directory to path
-sys.path.insert(0, str(Path(__file__).parent))
 
 # Try to import Supabase DB, fallback to SQLite
 try:
