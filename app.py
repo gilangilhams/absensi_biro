@@ -2,6 +2,10 @@ import streamlit as st
 import os
 import sqlite3
 import pandas as pd
+from init_db import init_database
+
+# Initialize database on startup
+init_database()
 
 # Mencari path folder tempat script ini berjalan
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))

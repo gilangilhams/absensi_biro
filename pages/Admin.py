@@ -2,6 +2,14 @@ import streamlit as st
 import sqlite3
 import pandas as pd
 import os
+import sys
+
+# Add parent directory to path for imports
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from init_db import init_database
+
+# Initialize database on startup
+init_database()
 
 # Mencari path folder tempat script ini berjalan
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
