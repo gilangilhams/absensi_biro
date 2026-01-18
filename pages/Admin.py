@@ -31,12 +31,8 @@ st.markdown("""
     """, unsafe_allow_html=True)
 
 # 2. Fungsi Database
-def jalankan_query(sql, params=()):
-    with sqlite3.connect('absensi_biro.db') as conn:
-        return pd.read_sql_query(sql, conn, params=params)
-
 def eksekusi_sql(sql, params=()):
-    with sqlite3.connect('absensi_biro.db') as conn:
+    with sqlite3.connect(DB_PATH) as conn:
         cursor = conn.cursor()
         cursor.execute(sql, params)
         conn.commit()

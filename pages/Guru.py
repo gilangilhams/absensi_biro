@@ -18,12 +18,8 @@ def jalankan_query(sql, params=()):
         return pd.read_sql_query(sql, conn, params=params)
 
 # --- FUNGSI DATABASE ---
-def jalankan_query(sql, params=()):
-    with sqlite3.connect('absensi_biro.db') as conn:
-        return pd.read_sql_query(sql, conn, params=params)
-
 def eksekusi_sql(sql, params=()):
-    with sqlite3.connect('absensi_biro.db') as conn:
+    with sqlite3.connect(DB_PATH) as conn:
         cursor = conn.cursor()
         cursor.execute(sql, params)
         conn.commit()

@@ -1,6 +1,7 @@
 import streamlit as st
 import os
 import sqlite3
+import pandas as pd
 
 # Mencari path folder tempat script ini berjalan
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
