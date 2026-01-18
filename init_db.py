@@ -10,37 +10,74 @@ def init_database():
     cursor = conn.cursor()
     
     try:
-        # Create ADMIN table
+        # Create MAPEL table
         cursor.execute("""
-        CREATE TABLE IF NOT EXISTS ADMIN (
-            ID INTEGER PRIMARY KEY AUTOINCREMENT,
-            USERNAME TEXT UNIQUE NOT NULL,
-            PASSWORD TEXT NOT NULL,
-            NAMA_ADMIN TEXT NOT NULL
+        CREATE TABLE IF NOT EXISTS MAPEL (
+            ID_MAPEL INTEGER NOT NULL,
+            NAMA_MAPEL TEXT NOT NULL,
+            PRIMARY KEY(ID_MAPEL AUTOINCREMENT)
         )
         """)
         
         # Create GURU table
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS GURU (
-            ID INTEGER PRIMARY KEY AUTOINCREMENT,
-            USERNAME TEXT UNIQUE NOT NULL,
-            PASSWORD TEXT NOT NULL,
+            ID_GURU INTEGER NOT NULL,
             NAMA_GURU TEXT NOT NULL,
-            NIP TEXT UNIQUE,
-            BIDANG_STUDI TEXT
+            No_Telp INTEGER UNIQUE,
+            ID_MAPEL INTEGER,
+            PASSWORD INTEGER UNIQUE,
+            PRIMARY KEY(ID_GURU AUTOINCREMENT),
+            FOREIGN KEY(ID_MAPEL) REFERENCES MAPEL(ID_MAPEL)
+        )
+        """)
+        
+        # Create ADMIN table
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS ADMIN (
+            ID_ADMIN INTEGER,
+            USERNAME TEXT NOT NULL UNIQUE,
+            PASSWORD TEXT NOT NULL,
+            NAMA_ADMIN TEXT,
+            PRIMARY KEY(ID_ADMIN AUTOINCREMENT)
+        )
+        """)
+        
+        # Create SISWA table
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS SISWA (
+            ID_SISWA INTEGER PRIMARY KEY AUTOINCREMENT,
+            NAMA_SISWA TEXT NOT NULL,
+            KELAS TEXT NOT NULL
         )
         """)
         
         # Create ABSENSI table
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS ABSENSI (
-            ID INTEGER PRIMARY KEY AUTOINCREMENT,
-            ID_GURU INTEGER NOT NULL,
-            TANGGAL DATE NOT NULL,
-            STATUS TEXT NOT NULL,
-            KETERANGAN TEXT,
-            FOREIGN KEY (ID_GURU) REFERENCES GURU(ID)
+            ID_ABSEN INTEGER,
+            TANGGAL TEXT DEFAULT (DATE('now')),
+            ID_SISWA INTEGER,
+            ID_GURU INTEGER,
+            ID_MAPEL INTEGER,
+            TOPIK_MATERI TEXT,
+            STATUS TEXT,
+            PRIMARY KEY(ID_ABSEN AUTOINCREMENT),
+            FOREIGN KEY(ID_GURU) REFERENCES GURU(ID_GURU),
+            FOREIGN KEY(ID_MAPEL) REFERENCES MAPEL(ID_MAPEL),
+            FOREIGN KEY(ID_SISWA) REFERENCES SISWA(ID_SISWA)
+        )
+        """)
+        
+        # Create LOG_ABSENSI table
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS LOG_ABSENSI (
+            ID_LOG INTEGER PRIMARY KEY AUTOINCREMENT,
+            ID_ABSEN_LAMA INTEGER,
+            AKSI TEXT,
+            USER_PELAKU TEXT,
+            WAKTU_KEJADIAN DATETIME DEFAULT CURRENT_TIMESTAMP,
+            KETERANGAN TEXT
         )
         """)
         
@@ -53,12 +90,12 @@ def init_database():
             )
         
         conn.commit()
-        print("✅ Database initialized successfully!")
         
     except Exception as e:
-        print(f"❌ Error initializing database: {e}")
+        print(f"Error initializing database: {e}")
     finally:
         conn.close()
 
 if __name__ == "__main__":
     init_database()
+
