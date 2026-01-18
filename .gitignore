@@ -1,5 +1,5 @@
-# Database files
-*.db
+# Database files (keep template, ignore updates)
+# *.db
 *.sqlite
 *.sqlite3
 
