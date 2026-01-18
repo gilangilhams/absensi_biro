@@ -4,14 +4,35 @@ SQL Query converter untuk compatibility antara SQLite dan PostgreSQL
 
 def convert_sql_for_postgres(sql, params=None):
     """Convert SQLite SQL syntax ke PostgreSQL"""
-    # Replace ? placeholder dengan %s
-    converted_sql = sql.replace("?", "%s")
-    
-    # Replace SQLite strftime dengan PostgreSQL to_char
-    # strftime('%m', column) -> to_char(column, 'MM')
-    # strftime('%Y', column) -> to_char(column, 'YYYY')
-    # strftime('%m-%Y', column) -> to_char(column, 'MM-YYYY')
     import re
+    
+    # Only replace ? with %s if params exist and are non-empty
+    if params:
+        converted_sql = sql.replace("?", "%s")
+    else:
+        converted_sql = sql
+        # If no params but query has ?, remove them (they're inline literals)
+        # Actually, don't remove - just leave as-is since there are no params
+        # The query shouldn't have ? if there are no params
+    
+    # Replace SQLite IFNULL dengan PostgreSQL COALESCE
+    converted_sql = re.sub(r"IFNULL\(", "COALESCE(", converted_sql, flags=re.IGNORECASE)
+    
+    # Replace SQLite GROUP_CONCAT dengan PostgreSQL string_agg
+    # GROUP_CONCAT(expr) -> string_agg(expr, ', ')
+    # GROUP_CONCAT(DISTINCT expr) -> string_agg(DISTINCT expr, ', ')
+    converted_sql = re.sub(
+        r"GROUP_CONCAT\(DISTINCT\s+([^)]+)\)", 
+        r"string_agg(DISTINCT \1, ', ')", 
+        converted_sql, 
+        flags=re.IGNORECASE
+    )
+    converted_sql = re.sub(
+        r"GROUP_CONCAT\(([^)]+)\)", 
+        r"string_agg(\1, ', ')", 
+        converted_sql, 
+        flags=re.IGNORECASE
+    )
     
     # Handle strftime patterns
     converted_sql = re.sub(r"strftime\('%m',\s*(\w+)\)", r"to_char(\1, 'MM')", converted_sql)

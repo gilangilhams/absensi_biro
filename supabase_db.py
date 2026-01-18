@@ -1,25 +1,34 @@
 import os
 import psycopg2
 import psycopg2.extras
-import streamlit as st
 from contextlib import contextmanager
 from sql_converter import convert_sql_for_postgres
 
 class SupabaseDB:
     def __init__(self):
         """Initialize Supabase connection"""
-        try:
-            # Get from Streamlit secrets or environment variables
-            self.db_url = st.secrets.get("database_url", os.getenv("DATABASE_URL"))
-            if not self.db_url:
-                raise ValueError("DATABASE_URL not found in secrets or environment variables")
-        except:
-            self.db_url = os.getenv("DATABASE_URL")
+        # Try to get DATABASE_URL from environment or streamlit secrets
+        self.db_url = os.getenv("DATABASE_URL")
+        
+        # If not found in env, try streamlit secrets (only if streamlit is available)
+        if not self.db_url:
+            try:
+                import streamlit as st
+                self.db_url = st.secrets.get("database_url")
+            except:
+                pass
+        
+        if not self.db_url:
+            raise ValueError("DATABASE_URL not found in environment variables or Streamlit secrets")
     
     @contextmanager
     def get_connection(self):
         """Get database connection context manager"""
-        conn = psycopg2.connect(self.db_url)
+        try:
+            conn = psycopg2.connect(self.db_url)
+        except (psycopg2.OperationalError, Exception) as e:
+            # Connection failed - re-raise so caller can handle it
+            raise ConnectionError(f"Failed to connect to Supabase: {e}")
         try:
             yield conn
         finally:

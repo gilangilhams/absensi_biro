@@ -42,12 +42,34 @@ if not USE_SUPABASE:
             cursor.execute(sql, params)
             conn.commit()
 else:
+    # Fallback functions in case Supabase connection fails
+    from init_db import init_database
+    init_database()
+    
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+    if "pages" in BASE_DIR:
+        DB_PATH = os.path.join(os.path.dirname(BASE_DIR), 'absensi_biro.db')
+    else:
+        DB_PATH = os.path.join(BASE_DIR, 'absensi_biro.db')
+    
     def jalankan_query(sql, params=()):
-        result = db.execute_query(sql, params)
-        return pd.DataFrame(result) if result else pd.DataFrame()
+        try:
+            result = db.execute_query(sql, params)
+            return pd.DataFrame(result) if result else pd.DataFrame()
+        except (ConnectionError, Exception) as e:
+            print(f"⚠️ Supabase connection failed, using SQLite: {e}")
+            with sqlite3.connect(DB_PATH) as conn:
+                return pd.read_sql_query(sql, conn, params=params)
     
     def eksekusi_sql(sql, params=()):
-        db.execute_update(sql, params)
+        try:
+            db.execute_update(sql, params)
+        except (ConnectionError, Exception) as e:
+            print(f"⚠️ Supabase connection failed, using SQLite: {e}")
+            with sqlite3.connect(DB_PATH) as conn:
+                cursor = conn.cursor()
+                cursor.execute(sql, params)
+                conn.commit()
 
 # --- TAMPILAN ---
 st.set_page_config(page_title="Portal Guru", layout="centered")
