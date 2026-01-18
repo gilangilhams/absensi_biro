@@ -1,13 +1,8 @@
-import os
-from dotenv import load_dotenv
-
-# Load environment variables FIRST
-load_dotenv()
-
 import streamlit as st
 import sqlite3
 import pandas as pd
 from datetime import datetime
+import os
 import sys
 from pathlib import Path
 
@@ -33,43 +28,24 @@ if not USE_SUPABASE:
         DB_PATH = os.path.join(BASE_DIR, 'absensi_biro.db')
     
     def jalankan_query(sql, params=()):
+        # Convert PostgreSQL syntax to SQLite if needed
+        sqlite_sql = sql.replace('%s', '?')
         with sqlite3.connect(DB_PATH) as conn:
-            return pd.read_sql_query(sql, conn, params=params)
+            return pd.read_sql_query(sqlite_sql, conn, params=params)
     
     def eksekusi_sql(sql, params=()):
+        sqlite_sql = sql.replace('%s', '?')
         with sqlite3.connect(DB_PATH) as conn:
             cursor = conn.cursor()
-            cursor.execute(sql, params)
+            cursor.execute(sqlite_sql, params)
             conn.commit()
 else:
-    # Fallback functions in case Supabase connection fails
-    from init_db import init_database
-    init_database()
-    
-    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-    if "pages" in BASE_DIR:
-        DB_PATH = os.path.join(os.path.dirname(BASE_DIR), 'absensi_biro.db')
-    else:
-        DB_PATH = os.path.join(BASE_DIR, 'absensi_biro.db')
-    
     def jalankan_query(sql, params=()):
-        try:
-            result = db.execute_query(sql, params)
-            return pd.DataFrame(result) if result else pd.DataFrame()
-        except (ConnectionError, Exception) as e:
-            print(f"⚠️ Supabase connection failed, using SQLite: {e}")
-            with sqlite3.connect(DB_PATH) as conn:
-                return pd.read_sql_query(sql, conn, params=params)
+        result = db.execute_query(sql, params)
+        return pd.DataFrame(result) if result else pd.DataFrame()
     
     def eksekusi_sql(sql, params=()):
-        try:
-            db.execute_update(sql, params)
-        except (ConnectionError, Exception) as e:
-            print(f"⚠️ Supabase connection failed, using SQLite: {e}")
-            with sqlite3.connect(DB_PATH) as conn:
-                cursor = conn.cursor()
-                cursor.execute(sql, params)
-                conn.commit()
+        db.execute_update(sql, params)
 
 # --- TAMPILAN ---
 st.set_page_config(page_title="Portal Guru", layout="centered")
@@ -91,30 +67,52 @@ if 'guru_logged_in' not in st.session_state:
 
 if not st.session_state['guru_logged_in']:
     st.subheader("Login Guru")
-    df_mapel = jalankan_query("SELECT ID_MAPEL, NAMA_MAPEL FROM MAPEL")
-    opsi_mapel = {row['NAMA_MAPEL']: row['ID_MAPEL'] for index, row in df_mapel.iterrows()}
     
-    sel_mapel = st.selectbox("Pilih Mata Pelajaran", opsi_mapel.keys())
-    pw = st.text_input("Password", type="password")
-    
-    if st.button("Masuk"):
-        res = jalankan_query("""
-            SELECT G.*, M.NAMA_MAPEL 
-            FROM GURU G 
-            JOIN MAPEL M ON G.ID_MAPEL = M.ID_MAPEL 
-            WHERE G.ID_MAPEL=? AND G.PASSWORD=?""", 
-            (opsi_mapel[sel_mapel], pw))
-            
-        if not res.empty:
-            st.session_state['guru_logged_in'] = True
-            st.session_state['guru_data'] = res.iloc[0]
-            st.rerun()
+    # Step 1: Pilih Mata Pelajaran
+    df_mapel = jalankan_query("SELECT ID_MAPEL, NAMA_MAPEL FROM MAPEL ORDER BY NAMA_MAPEL")
+    if df_mapel.empty:
+        st.error("❌ Tidak ada mata pelajaran. Admin harus menambahkan data mata pelajaran terlebih dahulu.")
+    else:
+        opsi_mapel = {row['NAMA_MAPEL']: row['ID_MAPEL'] for index, row in df_mapel.iterrows()}
+        sel_mapel_name = st.selectbox("Pilih Mata Pelajaran", list(opsi_mapel.keys()))
+        sel_mapel_id = opsi_mapel[sel_mapel_name]
+        
+        # Step 2: Pilih Guru untuk Mata Pelajaran tersebut
+        df_guru = jalankan_query(
+            "SELECT ID_GURU, NAMA_GURU FROM GURU WHERE ID_MAPEL = %s ORDER BY NAMA_GURU",
+            (sel_mapel_id,)
+        )
+        
+        if df_guru.empty:
+            st.warning(f"⚠️ Tidak ada guru untuk mata pelajaran: {sel_mapel_name}")
         else:
-            st.error("Kombinasi Mapel dan Password salah!")
+            opsi_guru = {row['NAMA_GURU']: row['ID_GURU'] for index, row in df_guru.iterrows()}
+            sel_guru_name = st.selectbox("Pilih Nama Guru", list(opsi_guru.keys()))
+            sel_guru_id = opsi_guru[sel_guru_name]
+            
+            # Step 3: Masukkan Password
+            pw = st.text_input("Masukkan Password", type="password")
+            
+            if st.button("Masuk"):
+                # Query dengan parameter yang sesuai
+                res = jalankan_query("""
+                    SELECT G.ID_GURU, G.NAMA_GURU, G.PASSWORD, G.ID_MAPEL, M.NAMA_MAPEL 
+                    FROM GURU G 
+                    JOIN MAPEL M ON G.ID_MAPEL = M.ID_MAPEL 
+                    WHERE G.ID_GURU = %s AND G.PASSWORD = %s""", 
+                    (sel_guru_id, pw))
+                
+                if not res.empty:
+                    st.session_state['guru_logged_in'] = True
+                    st.session_state['guru_data'] = res.iloc[0]
+                    st.success("✅ Login berhasil!")
+                    st.rerun()
+                else:
+                    st.error("❌ Password salah!")
 
 else:
     user = st.session_state['guru_data']
-    st.success(f"Login Aktif: **{user['NAMA_GURU']}** | Mapel: **{user['NAMA_MAPEL']}**")
+    st.success(f"✅ Login Aktif: **{user['NAMA_GURU']}** | Mapel: **{user['NAMA_MAPEL']}**")
     
     if st.sidebar.button("🔓 Logout"):
         st.session_state['guru_logged_in'] = False
