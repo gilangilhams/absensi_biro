@@ -1,6 +1,20 @@
 import streamlit as st
 import sqlite3
 import pandas as pd
+import os
+
+# Mencari path folder tempat script ini berjalan
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# Jika file ini ada di dalam folder 'pages', kita harus naik satu tingkat
+if "pages" in BASE_DIR:
+    DB_PATH = os.path.join(os.path.dirname(BASE_DIR), 'absensi_biro.db')
+else:
+    DB_PATH = os.path.join(BASE_DIR, 'absensi_biro.db')
+
+def jalankan_query(sql, params=()):
+    with sqlite3.connect(DB_PATH) as conn:
+        return pd.read_sql_query(sql, conn, params=params)
 
 # 1. CSS untuk menyembunyikan navigasi bawaan dan mempercantik tampilan
 st.markdown("""
