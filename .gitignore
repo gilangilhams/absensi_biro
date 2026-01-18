@@ -1,0 +1,9 @@
+venv/
+
+# Contoh isi .gitignore
+node_modules/
+.env
+dist/
+build/
+*.log
+.vscode/
